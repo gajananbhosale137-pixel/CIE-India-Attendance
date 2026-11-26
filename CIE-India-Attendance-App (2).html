@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="mr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#173b63">
+<title>CIE India Attendance</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans Devanagari",sans-serif;color:#172333;background:#f2f5f9}
+*{box-sizing:border-box}body{margin:0;padding:16px;max-width:560px;margin:auto}
+header{background:#173b63;color:white;padding:20px;border-radius:18px;margin:4px 0 14px}
+h1{font-size:23px;margin:0 0 5px}header p{margin:0;color:#dce8f5;font-size:14px}
+.card{background:white;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 3px 14px #152c4510}
+label{display:block;font-size:14px;font-weight:650;margin:10px 0 5px}
+input,select,button{width:100%;font:inherit;border-radius:11px;padding:12px;border:1px solid #cbd5e1;background:white}
+button{border:0;background:#1764a5;color:white;font-weight:700;margin-top:12px}
+button.secondary{background:#e8f0f8;color:#173b63}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#eef5fc;border-radius:12px;padding:13px}.stat small{color:#52657a}.stat strong{display:block;font-size:22px;margin-top:4px}
+.item{border-top:1px solid #e5eaf0;padding:11px 0;display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.pill{font-size:12px;padding:4px 8px;border-radius:20px;background:#e3f6e9;color:#17653b;white-space:nowrap}
+.pill.abs{background:#fff0e8;color:#9a451a}
+.note{font-size:12px;color:#607086;line-height:1.5}
+</style>
+</head>
+<body>
+<header><h1>CIE INDIA – हजेरी अ‍ॅप</h1><p>भोसरी, पुणे · रोजची हजेरी आणि पगाराचा हिशोब</p></header>
+<section class="card">
+ <div class="stats">
+  <div class="stat"><small>एकूण हजर दिवस</small><strong id="days">0</strong></div>
+  <div class="stat"><small>अंदाजे पगार</small><strong id="salary">₹0</strong></div>
+  <div class="stat"><small>एकूण नोंदी</small><strong id="entries">0</strong></div>
+  <div class="stat"><small>OT दिवस</small><strong id="otdays">0</strong></div>
+  <div class="stat"><small>OT चे पैसे</small><strong id="otpay">₹0</strong></div>
+  <div class="stat"><small>दररोजचा दर</small><strong>₹671</strong></div>
+  <div class="stat"><small>8 तास OT दर</small><strong>₹1,230</strong></div>
+ </div>
+</section>
+<section class="card">
+ <h2 style="font-size:18px;margin:0">आजची हजेरी नोंदवा</h2>
+ <label for="date">तारीख</label><input id="date" type="date">
+ <label for="shift">शिफ्ट</label><select id="shift"><option>सकाळ</option><option>दुपार</option><option>रात्र</option></select>
+ <label for="status">हजेरी</label><select id="status"><option value="Present">हजर</option><option value="Absent">गैरहजर</option></select>
+ <label for="ot">ओव्हरटाईम (OT)</label><select id="ot"><option value="No">OT नाही</option><option value="Yes">OT केली – 8 तास</option></select>
+ <p class="note">OT केली असल्यास ₹1,230 अतिरिक्त मोजले जातील.</p>
+ <label for="time">वेळ</label><input id="time" type="time">
+ <button id="save">हजेरी सेव्ह करा</button>
+ <p class="note">नोंद या मोबाईलच्या ब्राउझरमध्ये सेव्ह होते. अ‍ॅपमध्ये नोंद करण्यासाठी स्वतः बटण दाबा; कंपनीची अधिकृत हजेरी आपोआप मिळत नाही.</p>
+</section>
+<section class="card">
+ <h2 style="font-size:18px;margin:0 0 8px">हजेरी इतिहास</h2>
+ <div id="history"><p class="note">अजून नोंदी नाहीत.</p></div>
+ <button class="secondary" id="export">CSV डाउनलोड करा</button>
+ <button class="secondary" id="clear">सर्व नोंदी पुसा</button>
+</section>
+<script>
+const KEY='cie_india_attendance_v1', RATE=671;
+const $=id=>document.getElementById(id);
+let records=[];
+try{records=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){records=[]}
+const today=new Date();
+$('date').value=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
+$('time').value=String(today.getHours()).padStart(2,'0')+':'+String(today.getMinutes()).padStart(2,'0');
+function save(){localStorage.setItem(KEY,JSON.stringify(records))}
+function render(){
+ const present=records.filter(r=>r.status==='Present').length;
+ const otRecords=records.filter(r=>r.status==='Present'&&r.ot==='Yes').length;
+ const otPay=otRecords*1230;
+ $('days').textContent=present;
+ $('salary').textContent='₹'+(present*RATE+otPay).toLocaleString('en-IN');
+ $('entries').textContent=records.length;
+ $('otdays').textContent=otRecords;
+ $('otpay').textContent='₹'+otPay.toLocaleString('en-IN');
+ const sorted=[...records].sort((a,b)=>b.date.localeCompare(a.date)||b.time.localeCompare(a.time));
+ $('history').innerHTML=sorted.length?sorted.map(r=>`<div class="item"><span><b>${r.date}</b><br>${r.shift} · ${r.time}<br>${r.ot==='Yes'?'OT: 8 तास · ₹1,230':'OT नाही'}</span><span class="pill ${r.status==='Absent'?'abs':''}">${r.status==='Present'?'हजर':'गैरहजर'}</span></div>`).join(''):'<p class="note">अजून नोंदी नाहीत.</p>';
+}
+$('save').onclick=()=>{
+ const date=$('date').value,shift=$('shift').value,status=$('status').value,time=$('time').value,ot=$('ot').value;
+ if(!date||!time){alert('तारीख आणि वेळ भरा.');return}
+ const i=records.findIndex(r=>r.date===date&&r.shift===shift);
+ const row={date,shift,status,time,ot:status==='Present'?ot:'No',source:'manual',latitude:'',longitude:''};
+ if(i>=0)records[i]=row;else records.push(row);
+ save();render();alert('हजेरी सेव्ह झाली.');
+};
+$('export').onclick=()=>{
+ const rows=[['Date','Shift','Status','Time','OT','OT Hours','OT Pay','Source','Latitude','Longitude'],...records.map(r=>[r.date,r.shift,r.status,r.time,r.ot||'No',r.ot==='Yes'?8:0,r.ot==='Yes'?1230:0,r.source,'',''])];
+ const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='CIE-India-Attendance.csv';a.click();URL.revokeObjectURL(a.href);
+};
+$('clear').onclick=()=>{if(confirm('सर्व हजेरी नोंदी पुसायच्या का?')){records=[];save();render()}};
+render();
+</script>
+</body></html>
